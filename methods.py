@@ -1,7 +1,7 @@
 import pywt
 import numpy as np
+from scipy import optimize
 
-from abc import abstractmethod
 from tools import intervals_to_mask
 
 
@@ -39,6 +39,11 @@ class SingleChannelDenoiser:
 
     def run_single_channel(signal, artifacts):
         raise NotImplementedError()
+
+
+def _st(x, t):
+    """Soft thresholding."""
+    return x.clip(-t, t)
 
 
 class SWTDenoiser(SingleChannelDenoiser):
@@ -164,7 +169,6 @@ class WaveletDenoiser:
     def _idwt(self, coeffs):
         return pywt.waverec(coeffs, self.wavelet, mode=self.mode)
 
-    @abstractmethod
     def denoise(self, signal, reference):
         """Denoise the artifacted signal based on a clean reference.
 
@@ -179,6 +183,7 @@ class WaveletDenoiser:
         -------
             numpy.ndarray : The denoised signal.
         """
+        raise NotImplementedError()
 
 
 class WQNDenoiser(WaveletDenoiser):
@@ -192,11 +197,11 @@ class WQNDenoiser(WaveletDenoiser):
             inv_order = np.empty_like(order)
             inv_order[order] = np.arange(len(order))
 
-            vals_ref = np.abs(cs_ref[cs_ref.size // 4 : cs_ref.size - cs_ref.size // 4])
+            vals_ref = np.abs(cs_ref)
             ref_order = np.argsort(vals_ref)
-            ref_sp = np.linspace(0, len(inv_order), len(ref_order))
+            ref_sp = np.linspace(0, len(inv_order) - 1, len(ref_order))
             vals_norm = np.interp(inv_order, ref_sp, vals_ref[ref_order])
-            r = vals_norm / np.abs(cs).clip(1e-10)
+            r = vals_norm / np.abs(cs)
             cs[:] *= np.minimum(1, r)
 
         if with_coeffs:
@@ -223,32 +228,26 @@ class WTDenoiser(WaveletDenoiser):
         self.method = method
 
     def denoise(self, signal, reference, with_coeffs=False):
-        """Denoise the artifacted signal based on a clean reference.
-
-        Parameters
-        ----------
-        signal : numpy.ndarray
-            Artifacted signal.
-        reference : numpy.ndarray
-            Clean reference signal.
-
-        Returns
-        -------
-            numpy.ndarray : The denoised signal.
-        """
         coeffs_ref = self._dwt(reference)
         coeffs_art = self._dwt(signal)
 
         coeffs = [c.copy() for c in coeffs_art]
         thresh_fn = _ht if self.method.endswith("_hard") else _st
-        print(thresh_fn)
+
         if self.method in ["ideal_hard", "ideal_soft"]:
             # Ideal thresholding minimizing MSE
             for cs_ref, cs in zip(coeffs_ref[1:], coeffs[1:]):
-                ts = np.linspace(0, np.abs(cs).max(), 1_000)
-                R = [((cs_ref - thresh_fn(cs, t)) ** 2).mean() for t in ts]
-                th = ts[np.argmin(R)]
-                cs[:] = thresh_fn(cs, th)
+                asympt_th = cs_ref.std() * np.sqrt(2 * np.log(len(signal)))
+                opt = optimize.minimize(
+                    lambda tx: ((cs_ref - _st(cs, tx)) ** 2).mean(),
+                    min(np.abs(cs).max(), asympt_th),
+                    tol=1e-6,
+                    # method="Nelder-Mead",
+                    method="L-BFGS-B",
+                    bounds=[(0, np.abs(cs).max() + 1e-10)],
+                )
+                # print(opt.x)
+                cs[:] = thresh_fn(cs, opt.x)
         elif self.method in ["universal_hard", "universal_soft"]:
             # Universal thresholding σ √(2 log N), where the σ is calculated on
             # the non-artifacted signal (reference).
@@ -261,11 +260,15 @@ class WTDenoiser(WaveletDenoiser):
                 σ = cs_ref.std()
 
                 # SURE minimization
-                ts = np.linspace(0, np.sqrt(2 * np.log(len(cs))), 1_000)
-                th = σ * ts[np.argmin([_sure(t, cs / σ) for t in ts])]
+                opt = optimize.minimize(
+                    lambda tx: _sure(cs / σ, tx),
+                    σ * np.sqrt(2 * np.log(len(signal))),
+                    tol=1e-6,
+                    method="Nelder-Mead",
+                )
 
                 # Soft thresholding
-                cs[:] = _st(cs, th)
+                cs[:] = _st(cs, opt.x)
         else:
             raise ValueError(f"Unknown method `{self.method}`")
 
@@ -296,3 +299,8 @@ def _ht(x, t):
 def _st(x, t):
     """Soft thresholding."""
     return x.clip(-t, t)
+
+
+def mse(x, y):
+    """Mean squared error."""
+    return np.mean((x - y) ** 2)
