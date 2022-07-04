@@ -61,12 +61,12 @@ denoisers_attrs = {
     "wt_isoft": {
         "color": COLOR_WT_SOFT,
         "marker": "D",
-        "label": "Ideal soft thresholding",
+        "label": "Optimal soft thresholding",
     },
     "wt_ihard": {
         "color": COLOR_WT_HARD,
         "marker": "s",
-        "label": "Ideal hard thresholding",
+        "label": "Optimal hard thresholding",
     },
     "wt_usoft": {
         "color": COLOR_UNI_SOFT,
