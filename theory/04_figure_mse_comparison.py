@@ -75,13 +75,14 @@ denoisers_attrs = {
     },
 }
 
+
 # %%
 # Compute statistics
 
 np.random.seed(3884)
 
 scales = np.arange(0, 21)
-num_realizations = 100
+num_realizations = 1_000
 t = np.linspace(0, 3, 2**12)
 
 # Data array (realization, square/triangle, time)
