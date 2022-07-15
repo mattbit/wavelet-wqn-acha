@@ -1,3 +1,5 @@
+from math import gamma
+from signal import Sigmasks
 import pywt
 import numpy as np
 from scipy import optimize
@@ -210,6 +212,18 @@ class WQNDenoiser(WaveletDenoiser):
         return self._idwt(coeffs)
 
 
+class ZeroDenoiser(WaveletDenoiser):
+    def denoise(self, signal, reference, with_coeffs=False):
+        coeffs = self._dwt(signal)
+
+        for cs in coeffs[1:]:
+            cs[:] = 0.0
+        if with_coeffs:
+            return self._idwt(coeffs), coeffs
+
+        return self._idwt(coeffs)
+
+
 class WTDenoiser(WaveletDenoiser):
     _available_methods = [
         "ideal_hard",
@@ -235,7 +249,7 @@ class WTDenoiser(WaveletDenoiser):
         thresh_fn = _ht if self.method.endswith("_hard") else _st
 
         if self.method in ["ideal_hard", "ideal_soft"]:
-            # Ideal thresholding minimizing MSE
+            # Ideal optimal thresholding minimizing MSE
             for cs_ref, cs in zip(coeffs_ref[1:], coeffs[1:]):
                 asympt_th = cs_ref.std() * np.sqrt(2 * np.log(len(signal)))
                 opt = optimize.minimize(
@@ -246,7 +260,6 @@ class WTDenoiser(WaveletDenoiser):
                     method="L-BFGS-B",
                     bounds=[(0, np.abs(cs).max() + 1e-10)],
                 )
-                # print(opt.x)
                 cs[:] = thresh_fn(cs, opt.x)
         elif self.method in ["universal_hard", "universal_soft"]:
             # Universal thresholding σ √(2 log N), where the σ is calculated on
@@ -259,16 +272,21 @@ class WTDenoiser(WaveletDenoiser):
                 # Estimate the standard deviation (on the reference signal)
                 σ = cs_ref.std()
 
-                # SURE minimization
-                opt = optimize.minimize(
-                    lambda tx: _sure(cs / σ, tx),
-                    σ * np.sqrt(2 * np.log(len(signal))),
-                    tol=1e-6,
-                    method="Nelder-Mead",
-                )
+                # Critical value
+                γ = np.log2(len(cs)) ** (3 / 2) / np.sqrt(len(cs))
+                s2 = ((cs / σ) ** 2 - 1).sum() / len(cs)
+
+                if s2 <= γ:
+                    # Fixed thresholding
+                    th = σ * np.sqrt(2 * np.log(len(signal)))
+                else:
+                    # SURE minimization
+                    ts = np.concatenate([[0], np.unique(cs)])
+                    i_min = np.argmin([_sure(t / σ, cs / σ) for t in ts])
+                    th = ts[i_min]
 
                 # Soft thresholding
-                cs[:] = _st(cs, opt.x)
+                cs[:] = _st(cs, th)
         else:
             raise ValueError(f"Unknown method `{self.method}`")
 

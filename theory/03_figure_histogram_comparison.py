@@ -50,12 +50,8 @@ x2 = s2 + a2
 # %%
 
 denoiser_wqn = WQNDenoiser(wavelet="sym3", mode="symmetric")
-denoiser_wt_isoft = WTDenoiser(
-    method="ideal_soft", wavelet="sym3", mode="symmetric"
-)
-denoiser_wt_ihard = WTDenoiser(
-    method="ideal_hard", wavelet="sym3", mode="symmetric"
-)
+denoiser_wt_isoft = WTDenoiser(method="ideal_soft", wavelet="sym3", mode="symmetric")
+denoiser_wt_ihard = WTDenoiser(method="ideal_hard", wavelet="sym3", mode="symmetric")
 
 # %%
 
@@ -79,7 +75,7 @@ print("MSE WT soft", mse(s1, x_wt_isoft1))
 # Prepare the figure
 
 plot_level = 6
-spacing = 1.4
+spacing = 1.5
 num_bins = 60
 
 _range = (-0.3, 0.3)
@@ -99,7 +95,8 @@ ax[0, 0].plot(t, -3 * spacing + x_wt_isoft1, c=COLOR_WT_SOFT)
 ax[0, 0].plot(t, -4 * spacing + x_wqn1, c=COLOR_WQN)
 
 ax[0, 0].set_yticks(-np.arange(5) * spacing)
-ax[0, 0].set_yticklabels(["Test signal", "Artifacted", "HT", "ST", "WQN"])
+ax[0, 0].set_yticklabels(["Test signal\n$x(t)$     ", "Artifacted\n$y(t)$     ", "Optimal HT", "Optimal ST", "WQN"])
+
 
 ax[0, 1].hist(
     cs_ref1[plot_level],
@@ -148,7 +145,7 @@ ax[1, 0].plot(t, -3 * spacing + x_wt_isoft2, c=COLOR_WT_SOFT)
 ax[1, 0].plot(t, -4 * spacing + x_wqn2, c=COLOR_WQN)
 
 ax[1, 0].set_yticks(-np.arange(5) * spacing)
-ax[1, 0].set_yticklabels(["Test signal", "Artifacted", "HT", "ST", "WQN"])
+ax[1, 0].set_yticklabels(["Test signal\n$x(t)$     ", "Artifacted\n$y(t)$     ", "Optimal HT", "Optimal ST", "WQN"])
 
 ax[1, 1].hist(
     cs_ref2[plot_level],
@@ -217,3 +214,25 @@ fig.savefig(f"acha_fig3_hurst{hurst}_v2.pdf")
 
 
 # %%
+
+
+x_wt_isoft1, cs_wt_isoft1 = denoiser_wt_isoft.denoise(x1, s1, with_coeffs=True)
+x_wt_ihard1, cs_wt_ihard1 = denoiser_wt_ihard.denoise(x1, s1, with_coeffs=True)
+x_wqn1, cs_wqn1 = denoiser_wqn.denoise(x1, s1, with_coeffs=True)
+
+x_wt_isoft2, cs_wt_isoft2 = denoiser_wt_isoft.denoise(x2, s2, with_coeffs=True)
+x_wt_ihard2, cs_wt_ihard2 = denoiser_wt_ihard.denoise(x2, s2, with_coeffs=True)
+x_wqn2, cs_wqn2 = denoiser_wqn.denoise(x2, s2, with_coeffs=True)
+
+cs_ref1 = pywt.wavedec(s1, denoiser_wqn.wavelet, mode=denoiser_wqn.mode)
+cs_ref2 = pywt.wavedec(s2, denoiser_wqn.wavelet, mode=denoiser_wqn.mode)
+
+
+bins = np.linspace(-1, 1, 101)
+vals_isoft, _ = np.histogram(cs_wt_isoft1[6], bins)
+vals_wqn, _ = np.histogram(cs_wqn1[6], bins)
+vals_ref, _ = np.histogram(cs_ref1[6], bins)
+
+
+np.abs(vals_ref - vals_isoft).sum()
+np.abs(vals_ref - vals_wqn).sum()

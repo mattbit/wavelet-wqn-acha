@@ -9,6 +9,10 @@ plt.rcParams["figure.figsize"] = (12, 6)
 
 # %%
 
+
+
+# %%
+
 data1 = np.hstack(
     [
         np.load("/data/tmp/anastasia/190822_0_60s_trace.npy"),
