@@ -1,0 +1,64 @@
+axes.axisbelow: True
+axes.edgecolor: .5
+axes.facecolor: white
+axes.labelsize: 14
+axes.linewidth: 1
+axes.prop_cycle: cycler('color', ["000000", "E69F00", "56B4E9", "009E73", "F0E442", "0072B2", "D55E00", "CC79A7"])
+axes.titlesize: 16
+axes.titleweight: semibold
+
+figure.titlesize: 18
+figure.titleweight: bold
+figure.facecolor: white
+figure.figsize: 12, 8
+
+font.family: sans-serif
+font.sans-serif: Inter, Source Sans Pro, Arial, Liberation Sans, DejaVu Sans, Bitstream Vera Sans, sans-serif
+font.weight: normal
+svg.fonttype: none
+
+axes.grid: False
+grid.color: white
+grid.linestyle: -
+grid.linewidth: 0 
+
+image.cmap: viridis
+image.interpolation: none
+
+legend.fontsize: 14
+legend.labelspacing: 0.2
+legend.handleheight: 0.7
+legend.handlelength: 1.2
+legend.handletextpad: 0.4
+legend.frameon: False
+legend.fancybox: False
+legend.numpoints: 1
+legend.scatterpoints: 1
+
+lines.linewidth: 1
+lines.markeredgewidth: 0
+lines.markersize: 5 
+lines.solid_capstyle: round
+
+patch.facecolor: 4C72B0
+patch.linewidth: .3
+
+text.color: .15
+
+xtick.direction: in
+xtick.labelsize: 14
+xtick.major.pad: 5
+xtick.major.size: 3
+xtick.major.width: 1
+xtick.minor.size: 0
+xtick.minor.width: .5
+
+ytick.direction: in
+ytick.labelsize: 14
+ytick.major.pad: 5
+ytick.major.size: 3
+ytick.major.width: 1
+ytick.minor.size: 0
+ytick.minor.width: .5
+
+savefig.bbox: tight
