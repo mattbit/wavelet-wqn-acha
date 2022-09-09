@@ -149,3 +149,4 @@ fig.suptitle(f"Cusp CDF (wavelet={_wavelet},level={num_levels},cusp_amplitude={a
 fig.savefig(f"cusp_cdf_wavelet-{_wavelet}__level-{num_levels}__cusp_amplitude-{art_amplitude}.svg")
 
 # %%
+
